@@ -155,12 +155,20 @@ It can be done by running `git secret add <filenames...>` command.
 After you add all the files you wish to encrypt,
 run `git secret hide` to encrypt all files.
 The data will be encrypted with the public-keys described by
-the `git secret tell your@gpg.email` command.
+the `git secret tell your@gpg.email` command
+and placed in a file called `<filename>.sceret`.
 
 ```bash
 # encrypt file via git-secret
 git secret add credentials.json
+
+# now encrypt the hiden files
+$ git secret hide
+git-secret: done. 1 of 1 files are hidden.
 ```
+
+After using `git secret hide` to encrypt your data,
+it is safe to commit your changes.
 
 ### Step 6: Commit All Files to Local Repository
 Now commit the files to the `ntp-clock` git repository:
