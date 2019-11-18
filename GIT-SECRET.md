@@ -244,7 +244,7 @@ it is safe to commit your changes.
 ## Step 4: Revealing the Secret Later
 You can decrypt files with the `git secret reveal` command,
 or send the contents to `stdout` with the `git secret cat` command.
-If you used a password on your GPG key,
+If you used a password on your GPG key ring,
 it will ask you for your password.
 
 ## Step 5: Adding Someone to a Repository

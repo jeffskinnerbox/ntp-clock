@@ -194,7 +194,17 @@ cd ~/src
 git clone https://github.com/jeffskinnerbox/ntp-clock.git
 ```
 
-### Step 1:
+### Step 2: Retrieving the Credentials
+You can decrypt the credentials files with the `git secret reveal` command:
+
+```bash
+# retrieve the credentials
+git secret reveal
+```
+
+If you used a password on your GPG key ring,
+it will ask you for your password.
+
 ### Step 1:
 
 ----
