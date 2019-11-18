@@ -19,6 +19,53 @@ You should never push changes directly to the master branch.
 Instead, you should use feature branches as described above,
 and open a new Pull Request to merge the feature branch code with the master branch code.
 
+As an example, consider a repository called 'project'.
+You create the inital local repository, push it to GitHub, make some modifications locally under a branch called 'doc-improvements', and they murge that branch with the master:
+
+```bash
+# ---------------------- Rule #1 ----------------------
+
+# create your code and check it into a git local repository
+<create your code for 'project'>
+git init
+git add --all
+git commit -m 'creation initial repository'
+
+# create your remote GetHub repository
+<use 'New' button in repository directory on GitHub>
+
+# set your remote repository URL
+git remote add origin https://github.com/jeffskinnerbox/<project>.git
+
+# pushes the changes from your local repository up to the remote repository
+# branches colored in red have not been pulled down from the remote
+git push -u origin master
+
+# ---------------------- Rule 2 ----------------------
+
+# create and checkout new branch called 'doc-improvements'
+# could be done via single command: 'git checkout -b doc-improvements'
+git branch doc-improvements
+git checkout doc-improvements
+
+# make you updates within the 'doc-improvements' branch
+<make your code updates for 'project' within 'doc-improvements' branch>
+
+# ---------------------- Rule 3 ----------------------
+
+# push you changes to GetHub for the 'doc-improvement' branch
+git add --all
+git commit -m 'creation initial repository'
+get push
+
+# merge 'doc-improvements' branch with the 'master' branch
+git checkout master
+git merge doc-improvements
+
+# show all local and remote branches
+git branch -a
+```
+
 ----
 
 ## Getting Started - Green Field
@@ -115,8 +162,8 @@ ehthumbs.db
 Thumbs.db
 ```
 
-## Step 3: Create the git-secret Repository
-The `ntp-clock` code needs the crednetials for your local WiFi to work.
+## Step 3: Create the git-secret Local Repository
+The `ntp-clock` code needs the credentials for your local WiFi to work.
 Check out the `GIT-SECRET.md` file for more information.
 
 Initialize the `git-secret` repository by running `git secret init` command in your target project directory.
@@ -162,7 +209,7 @@ and placed in a file called `<filename>.sceret`.
 # encrypt file via git-secret
 git secret add credentials.json
 
-# now encrypt the hiden files
+# now encrypt the hidden files
 $ git secret hide
 git-secret: done. 1 of 1 files are hidden.
 ```
@@ -180,13 +227,17 @@ git commit -m 'Initial creation of ntp-clock repository'
 ```
 
 ### Step 7: Loading the GitHub Repository for the First Time
-Within the `~/src/ntp-clock` directory, use `git` to load the files to GitHub
+Within the `~/src/ntp-clock` directory, use `git` to load the files to GitHub,
+assuming you're using public keys to create remote repository.
 
 ```bash
 cd ~/src/ntp-clock
 git remote add origin https://github.com/jeffskinnerbox/ntp-clock.git
 git push -u origin master
 ```
+
+Alternative is to login into GitHub, create the remote repository,
+and create the repository manually.
 
 ----
 
