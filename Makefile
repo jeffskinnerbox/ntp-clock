@@ -1,50 +1,96 @@
 
+#-------------------------------------------------------------------------------
 # Maintainer:   jeffskinnerbox@yahoo.com / www.jeffskinnerbox.me
-# Version:      0.4.0
-
+# Version:      0.1.0
 #
-# Using https://github.com/plerup/makeEspArduino
+# USAGE
+#	To build the executable
+#	    make build
 #
-# makefile syntax
-#     = set the varialbe
-#    ?= set the variable only if it's not set/doesn't have a value
-#    := set variable as the output an executed shell script
-#    += is used for appending more text to variables
+#	To flash the device
+#	    make upload
 #
-# To build the executable
-# 	make
+#	makefile syntax
+#	    = set the varialbe
+#	    ?= set the variable only if it's not set/doesn't have a value
+#	    := set variable as the output an executed shell script
+#	    += is used for appending more text to variables
 #
-# To flash the device
-# 	make upload
+# SOURCES
+#   The Makefile was created with the help of this website:
+#   https://learn.sparkfun.com/tutorials/efficient-arduino-programming-with-arduino-cli-and-visual-studio-code/all
 #
-# To monitor the device
-#   To monitor the the device while operating, use:
-#       screen /dev/ttyUSB0 9600,cs8
-#   To terminate monitoring, enter:
-#       Cntr-a :quit
+# DOCUMENTATION
+#   https://create.arduino.cc/projecthub/B45i/getting-started-with-arduino-cli-7652a5
+#-------------------------------------------------------------------------------
 
-THIS_DIR := $(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
-ROOT := $(THIS_DIR)/..
+# name of program being created
+PROG = ntp-clock
 
-#ESP_ROOT = ~/.arduino15/packages/esp8266
-#ESP_ROOT = ~/.arduino15/packages/esp8266/hardware/esp8266
+# type of package, architecture, and board in use
+PACKAGE = esp8266
+ARCH =    esp8266
+BOARD =   nodemcuv2
 
-#LIBS = $(ESP_LIBS)/SPI \
-#	$(ESP_LIBS)/Wire \
-#	$(ESP_LIBS)/ESP8266WiFi \
-#	$(ESP_LIBS)/ESP8266WebServer \
-#	$(ESP_LIBS)/DNSServer
-#LIBS += $(ARDUINO_LIBS)/PersWiFiManager
+# serial port used by the board
+PORT = /dev/ttyUSB0
 
-# directory with source files for SPIFFS filesystem
-FS_DIR = ./data
+# optional verbose compile/upload flag
+#VERBOSE = -v
 
-CHIP = esp8266
-BOARD = nodemcuv2
-UPLOAD_PORT = /dev/ttyUSB0
-UPLOAD_SPEED = 115200
-FLASH_DEF=4M3M
+#-------------------------------------------------------------------------------
+
+# fully qualified board name (FQBN)
+FQBN = $(PACKAGE):$(ARCH):$(BOARD)
+
+# location of the esptool used for flashing
+ESPTOOL = /home/jeff/.arduino15/packages/esp32/tools/esptool_py/2.6.1/esptool.py
+
+# string within names given to .bin and .elf files
+VAR = $(shell echo $(FQBN) | tr ':' '.')
+
+# path for temp-storage of binary, object, and core.a files
+BUILD = /tmp/$(PROG)
+BUILD_PATH = $(BUILD)/build
+
+# paths to libraries and include files
+LIBS = "/home/jeff/src/arduino/sketchbooks/libraries"
+
+# compiler and compiler flags
+CC = arduino-cli compile
+CC_FLAGS = $(VERBOSE) --fqbn $(FQBN) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD) --libraries $(LIBS)
+
+# firmware flasher and flags
+UPLOAD = arduino-cli upload
+UPLOAD_FLAGS = $(VERBOSE) --fqbn $(FQBN) --port $(PORT)
 
 
+.PHONY: build upload clean erase size
 
-include /home/jeff/src/makeEspArduino/makeEspArduino.mk
+all: build upload
+
+build: 											# build the binary executable
+	$(CC) $(CC_FLAGS) $(PWD)
+
+upload: 										# up load the binary executable
+	$(UPLOAD) $(UPLOAD_FLAGS) $(PWD)
+
+#all: build upload
+
+#build: $(PROG).$(VAR).bin
+
+#$(PROG).$(VAR).bin: $(PROG).ino                 # build the binary executable
+	#$(CC) $(CC_FLAGS)
+
+#upload: $(PROG).$(VAR).bin                      # up load the binary executable
+	#$(UPLOAD) $(UPLOAD_FLAGS)
+
+erase:                                          # erase the entire flash
+	$(ESPTOOL) erase_flash --port $(PORT)
+
+size:                                           # determine the flash size
+	$(ESPTOOL) flash_id --port $(PORT)
+
+clean:                                          # delete all binaries and object files
+	rm -r --force $(BUILD)
+	rm --force *.bin *.elf *.hex

@@ -21,7 +21,7 @@ PHYSICAL DESIGN
 MONITOR
     To monitor the clocks activities while operating, power the NodeMCU via
     USB connection to a Linux computer and execut the following:
-        screen /dev/ttyUSB0 9600,cs8
+        screen /dev/ttyUSB0 9600,cs8cls
     To terminate monitoring, enter:
         CNTR-a :quit
 
@@ -33,11 +33,11 @@ TESTING
 
     To test the MQTT capabilities, use a public MQTT broker site
     and Mosquitto clients like this:
-        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-jeff/time"
-        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-jeff/drift"
-        mosquitto_pub -h broker.mqtt-dashboard.com -t "ntp-clock-jeff/command" -m "1"
+        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-test/time"
+        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-test/drift"
+        mosquitto_pub -h broker.mqtt-dashboard.com -t "ntp-clock-test/command" -m "1"
 
-        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-jeff/#"
+        mosquitto_sub -v -h broker.mqtt-dashboard.com -t "ntp-clock-test/#"
 
 USAGE
     commands sent via MQTT:
@@ -57,30 +57,24 @@ CREATED BY
     jeffskinnerbox@yahoo.com
 ------------------------------------------------------------------------------ */
 
+// ESP8266 libraries (~/.arduino15/packages/esp8266)
 #include <Wire.h>
+#include <WiFiUdp.h>
+#include <ESP8266WiFi.h>
+
+// Arduino libraries (~/src/arduino/libraries)
 #include <timer.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_LEDBackpack.h>
 
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
-#include <WiFiUdp.h>
+// Arduino Sketchbooks libraries (~/src/arduino/sketchbooks/libraries)
 #include <TimeLib.h>
 #include <Timezone.h>
+#include <PubSubClient.h>
+#include <Adafruit_LEDBackpack.h>
 
-
-// set to 1 to turn on debug statements to the serial output
-// using F() to load strings in flash memory, not RAM
-#define DEBUG true
-#if DEBUG
-    #define PRINT(s, x) { Serial.print(F(s)); Serial.println(x); }
-    #define PRINTS(x) Serial.println(F(x))
-    #define PRINTX(x) Serial.println(x, HEX)
-#else
-    #define PRINT(s, x)
-    #define PRINTS(x)
-    #define PRINTX(x)
-#endif
+// NTP-Clock project's include files (~/src/ntp-clock)
+#include "debug.h"
+#include "credentials.h"
 
 
 void MQTTPublishDrift(unsigned long);
@@ -90,9 +84,8 @@ bool TimeRefresh(void *);
 //------------------------------- WiFi Parameters ------------------------------
 
 // credentials for wifi network
-const char *ssid = "<my-wifi-ssid>";
-const char *pass = "<my-wifi-password>";
-
+const char *ssid = WIFISSID;
+const char *pass = WIFIPASS;
 
 
 //--------------------------- NodeMCU LED Parameters --------------------------
@@ -105,8 +98,18 @@ bool blinkLED = true;     // should we blink the nodemcu red led at each clock t
 
 //------------------------------- MQTT Parameters ------------------------------
 
+// topics used by mqtt client for publishing and subscribing
+#define TIMETOPIC  "ntp-clock-test/time"     // mqtt broker topic for current time
+#define DRIFTTOPIC "ntp-clock-test/drift"    // mqtt broker topic of time drift between clock and NIST
+#define ERRORTOPIC "ntp-clock-test/error"    // mqtt broker topic on application errors
+#define CMDTOPIC   "ntp-clock-test/command"  // mqtt broker topic for sending commands NodeMCU
+#define MQTTPORT   1883                      // port used by the mqtt broker
+
+#define MQTTSERVER "broker.mqtt-dashboard.com"
+#define MQTTCLIENT "mqtt-test"
+
 // public MQTT brokers for testing
-const char* mqtt_server = "broker.mqtt-dashboard.com";   // also see https://test.mosquitto.org/
+const char* mqtt_server = MQTTSERVER;   // also see https://test.mosquitto.org/
 
 // MQTT client object
 WiFiClient espClient;
@@ -115,14 +118,6 @@ PubSubClient mqtt_client(espClient);
 // MQTT message buffer for publishing and subscription
 const int MSGSIZE = 50;                // size of mqtt message buffer
 char msg[MSGSIZE];                     // buffer to hold mqtt messages
-
-// topics used by mqtt client for publishing and subscribing
-#define TIMETOPIC  "ntp-clock-jeff/time"     // mqtt broker topic for current time
-#define DRIFTTOPIC "ntp-clock-jeff/drift"    // mqtt broker topic of time drift between clock and NIST
-#define ERRORTOPIC "ntp-clock-jeff/error"    // mqtt broker topic on application errors
-#define CMDTOPIC   "ntp-clock-jeff/command"  // mqtt broker topic for sending commands NodeMCU
-#define MQTTPORT   1883                      // port used by the mqtt broker
-
 
 
 //------------------------ Clock Time Keeping Parameters -----------------------
@@ -498,7 +493,7 @@ void reconnect() {
         Serial.println("Attempting broker reconnection.");
 
         // Create a random client ID
-        String clientId = "MQTTClient-";
+        String clientId = MQTTCLIENT;
         Serial.print("MQTT Client ID = ");
         Serial.println(clientId);
 
@@ -802,7 +797,7 @@ void loop() {
         TimeRefresh(NULL);
     }
 
-    // tick the timers that drive the clock, update with ntp time, and other
+    // tick the timers that drive the clock, update with ntp time, and other things
     timer1.tick();
     timer2.tick();
     timer3.tick();

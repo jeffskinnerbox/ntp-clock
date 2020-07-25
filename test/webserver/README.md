@@ -37,6 +37,12 @@ No commands or parameter are entered.
 
 ## Other
 
+* [ESP32 Arduino: Asynchronous HTTP web server](https://techtutorialsx.com/2017/12/01/esp32-arduino-asynchronous-http-webserver/)
+    * Asynchronous APIs do not block. Every synchronous call waits and blocks for your results to > come back. This is just a sleeping thread and wasted computation.
+    * https://stackoverflow.com/questions/16715380/what-is-the-difference-between-asynchronous-and-synchronous-http-request
+
+* [Easy, Secure HTTPS With An ESP8266](https://hackaday.com/2020/07/02/easy-secure-https-with-an-esp8266/)
+
 * [ESP8266 Web Server Step-By-Step Using Arduino IDE](https://www.youtube.com/watch?v=m2fEXhl70OY)
 * [ESP8266 Web Server HTML Webpages Using Arduino IDE](https://www.youtube.com/watch?v=VNgFbQAVboA)
 * [ESP8266 Web Server and Websockets Using Arduino IDE vs. AJAX and HTTP](https://www.youtube.com/watch?v=ROeT-gyYZfw)
@@ -47,3 +53,4 @@ No commands or parameter are entered.
 
 * [Create A Simple ESP8266 Weather Station With BME280](https://lastminuteengineers.com/bme280-esp8266-weather-station/)
 * [MAKING A SIMPLE WEATHER WEB SERVER USING ESP8266 AND BME280](http://embedded-lab.com/blog/making-simple-weather-web-server-using-esp8266-bme280/)
+

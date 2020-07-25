@@ -3,13 +3,17 @@ Maintainer:   jeffskinnerbox@yahoo.com / www.jeffskinnerbox.me
 Version:      0.4.0
 -->
 
-ESP8266 NodeMCU driven clock display synchronized with a NIST time server via NTP
 
-![work-in-progress](http://worktrade.eu/img/uc.gif "These materials require additional work and are not ready for general use.")
+<div align="center">
+<img src="http://www.foxbyrd.com/wp-content/uploads/2018/02/file-4.jpg" title="These materials require additional work and are not ready for general use." align="center">
+</div>
+
 
 ---
 
 # DESCRIPTION
+ESP8266 NodeMCU driven clock display synchronized with a NIST time server via NTP
+
 Test program for ESP8266 NodeMCU + 7-segment display + backpack from Adafruit.
 NodeMCU will drive the display as a clock synchronized, via NTP, with a NIST time server.
 

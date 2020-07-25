@@ -12,3 +12,4 @@ a nice add-on features is the ability to update the firmware wirelessly.
 This is known as Over The Air (OTA) programming.
 
 * [ESP8266 Over The Air (OTA) Programming Without Reset Using Arduino IDE (Mac OSX and Windows)](https://www.youtube.com/watch?v=3aB85PuOQhY&t=20s)
+* [ESP8266 Arduino Core: OTA Updates](https://arduino-esp8266.readthedocs.io/en/latest/ota_updates/readme.html)
