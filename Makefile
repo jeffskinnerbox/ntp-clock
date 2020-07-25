@@ -1,9 +1,13 @@
 
 #-------------------------------------------------------------------------------
 # Maintainer:   jeffskinnerbox@yahoo.com / www.jeffskinnerbox.me
-# Version:      0.1.0
+# Version:      0.5.0
 #
 # USAGE
+#	To build the executable and flash the device
+#		make
+#		make all
+#
 #	To build the executable
 #	    make build
 #
@@ -64,6 +68,7 @@ CC_FLAGS = $(VERBOSE) --fqbn $(FQBN) --build-path=$(BUILD_PATH) --build-cache-pa
 UPLOAD = arduino-cli upload
 UPLOAD_FLAGS = $(VERBOSE) --fqbn $(FQBN) --port $(PORT)
 
+#-------------------------------------------------------------------------------
 
 .PHONY: build upload clean erase size
 
@@ -74,16 +79,6 @@ build: 											# build the binary executable
 
 upload: 										# up load the binary executable
 	$(UPLOAD) $(UPLOAD_FLAGS) $(PWD)
-
-#all: build upload
-
-#build: $(PROG).$(VAR).bin
-
-#$(PROG).$(VAR).bin: $(PROG).ino                 # build the binary executable
-	#$(CC) $(CC_FLAGS)
-
-#upload: $(PROG).$(VAR).bin                      # up load the binary executable
-	#$(UPLOAD) $(UPLOAD_FLAGS)
 
 erase:                                          # erase the entire flash
 	$(ESPTOOL) erase_flash --port $(PORT)

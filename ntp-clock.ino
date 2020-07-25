@@ -1,6 +1,7 @@
+
 /* -----------------------------------------------------------------------------
 Maintainer:   jeffskinnerbox@yahoo.com / www.jeffskinnerbox.me
-Version:      0.4.0
+Version:      0.5.0
 
 DESCRIPTION
     Test program for ESP8266 NodeMCU + 7-segment display + backpack from Adafruit.
@@ -84,8 +85,8 @@ bool TimeRefresh(void *);
 //------------------------------- WiFi Parameters ------------------------------
 
 // credentials for wifi network
-const char *ssid = WIFISSID;
-const char *pass = WIFIPASS;
+//const char *ssid = WIFISSID;
+//const char *pass = WIFIPASS;
 
 
 //--------------------------- NodeMCU LED Parameters --------------------------
@@ -245,31 +246,25 @@ bool wifiConnect(const char *ssid, const char *password, unsigned long timeout) 
     unsigned long tout;
 
     // attempt first connect to a WiFi network
-    Serial.print("\nAttempting connection to WiFi SSID ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
+    INFOS("Attempting connection to WiFi with SSID ", WIFISSID);
+    WiFi.begin(WIFISSID, WIFIPASS);
 
     // make subsequent connection attempts to wifi
     tout = timeout + millis();                // milliseconds of time given to making connection attempt
     while(WiFi.status() != WL_CONNECTED) {
-        Serial.print(".");
+        PRT(".");
         if (millis() > tout) {
-            Serial.print("Failed to connect to WiFi!  ");
-            Serial.print("Timed out after ");
-            Serial.print(timeout);
-            Serial.print(" milli-seconds. ");
-            Serial.print("WiFi status exit code is ");
-            Serial.println(WiFi.status());
+            WARNING("Failed to connect to WiFi ...");
+            WARNINGD("\tTimed out after (milliseconds): ", timeout);
+            WARNINGD("WiFi status exit code is ", WiFi.status());
             return false;
         }
         delay(500);
     }
+    PRT(".\n\r");
 
-    Serial.print("Successfully connected to WiFi!  ");
-    Serial.print("IP address is ");
-    Serial.println(WiFi.localIP());
-    Serial.print("WiFi status exit code is ");
-    Serial.println(WiFi.status());
+    INFOS("Successfully connected to WiFi!  IP address is ", WiFi.localIP());
+    INFOD("WiFi status exit code is ", WiFi.status());
 
     return true;
 }
@@ -277,55 +272,46 @@ bool wifiConnect(const char *ssid, const char *password, unsigned long timeout) 
 
 // terminate the wifi connect
 void wifiTerminate() {
-    Serial.print("\nDisconnecting from WiFi with SSID ");
-    Serial.println(WiFi.SSID());
+
+    INFOS("Disconnecting from WiFi with SSID ", WiFi.SSID());
 
     WiFi.disconnect();
 
-    Serial.println("\n-------------------------------------------------------");
 }
 
 
 // scan for nearby networks
 void scanNetworks() {
-    Serial.println("\nStarting Network Scan");
+
+    // scan the network for detectable SSIDs
+    INFO("Starting Network Scan");
     byte numSsid = WiFi.scanNetworks();
 
-    // print the list of networks seen
-    Serial.print("SSID List:");
-    Serial.println(numSsid);
-
     // print the network number and name for each network found
-    for (int thisNet = 0; thisNet < numSsid; thisNet++) {
-        Serial.print("   ");
-        Serial.print(thisNet);
-        Serial.print(") Network: ");
-        Serial.println(WiFi.SSID(thisNet));
-    }
+    INFOS("SSID's found: ", numSsid);
+    for (int thisNet = 0; thisNet < numSsid; thisNet++)
+        INFOS("\t", WiFi.SSID(thisNet));
 
-    Serial.println("Network Scan Completed");
-    Serial.println("\n-------------------------------------------------------");
+    INFO("Network Scan Completed");
+    PRINT("\n\r-------------------------------------------------------------------------------");
 }
 
 
 // start listening for UDP messages on port localPort
 void startUDP() {
-    if (udp.begin(localPort))
-        Serial.print("\nStarting UDP for NTP connection.  ");
-    else
-        Serial.print("Failed to start UDP listener.  ");
 
-    Serial.print("Using local port ");
-    Serial.println(udp.localPort());
+    if (udp.begin(localPort)) {
+        INFOD("Starting UDP for NTP connection.  Using local port ", udp.localPort());
+    } else
+        ERROR("Failed to start UDP listener.");
+
 }
 
 
 // stop listening for UDP messages on port localPort
 void stopUDP() {
-    Serial.print("Stopping UDP on local port ");
-    Serial.println(udp.localPort());
-    Serial.print("\n");
 
+    INFOD("Stopping UDP on local port ", udp.localPort());
     udp.stop();
 }
 
@@ -346,7 +332,7 @@ void errorHandler(int error) {
 
 // send an NTP request to the time server at the given address
 unsigned long sendNTPpacket(IPAddress& address) {
-    Serial.print("Sending NTP packet.  ");
+    INFO("Sending NTP packet.");
 
     memset(packetBuffer, 0, NTP_PACKET_SIZE);   // set all bytes in the buffer to 0
 
@@ -383,15 +369,14 @@ unsigned long getNTPTime() {
 
     int cb = udp.parsePacket();
     if (!cb) {
-        Serial.println("No packet from NTP server.");
+        WARNING("No packet from NTP server.");
 
         if ((millis() - lastNTPResponse) > ONE_DAY) {
-            Serial.println("\n\nMore than 24 hours since last NTP response.  Rebooting.");
+            FATAL("nMore than 24 hours since last NTP response.  Rebooting.");
             errorHandler(NOREFRESH);
         }
     } else {
-        Serial.print("NTP packet received, length= ");
-        Serial.println(cb);
+        INFOD("NTP packet received, length= ", cb);
 
         lastNTPResponse = millis();
 
@@ -405,14 +390,12 @@ unsigned long getNTPTime() {
         // combine the four bytes (two words) into a long integer giving you the NTP time
         // which is the seconds since Jan 1 1900 at UTC
         unsigned long secsSince1900 = highWord << 16 | lowWord;  // this is time (seconds since Jan 1 1900)
-        Serial.print("NTP time (seconds since Jan 1 1900 UTC) =  " );
-        Serial.println(secsSince1900);
+        INFOD("NTP time (seconds since Jan 1 1900 UTC) =  ", secsSince1900);
 
         // now convert NTP time into unix time
         // which is the seconds since Jan 1 1970 UTC
-        Serial.print("Unix time (seconds since Jan 1 1970 UTC) = ");
-        unsigned long epoch = secsSince1900 - SEVENTYYEARS;    // subtract seventy years
-        Serial.println(epoch);                                 // print Unix time (seconds since Jan 1 1970)
+        unsigned long epoch = secsSince1900 - SEVENTYYEARS;            // subtract seventy years
+        INFOD("Unix time (seconds since Jan 1 1970 UTC) = ", epoch);   // print Unix time (seconds since Jan 1 1970)
 
         // now print the full time, date, timezone
         printTimeDateLoc(epoch, "UTC", "Universal Coordinated Time");
@@ -446,10 +429,8 @@ bool TimeDriftCheck() {
     drift = (int)ClockTicks - drift;
 
     // print the time as seen by this clock (aka ntp-clock)
-    Serial.println("\nChecking for time drift:");
-    Serial.print("\tntp-clock time = ");
+    INFO("Checking for time drift.  ntp-clock time = ");
     printTime(displayHours, displayMinutes, displaySeconds);
-    Serial.println();
 
     if (utc != NULL) {
         // get hour:minutes:seconds time from universal coordinated time structure
@@ -475,7 +456,7 @@ bool TimeDriftCheck() {
         MQTTPublishDrift(drift);
         rtn = true;
     } else {
-        Serial.println("\nNTP server could not be reached. NTP Time unknown.");
+        WARNING("NTP server could not be reached. NTP Time unknown.");
         rtn = false;
     }
 
@@ -490,16 +471,15 @@ bool TimeDriftCheck() {
 
 void reconnect() {
     if (!mqtt_client.connected()) {
-        Serial.println("Attempting broker reconnection.");
+        INFO("Attempting broker reconnection.");
 
         // Create a random client ID
         String clientId = MQTTCLIENT;
-        Serial.print("MQTT Client ID = ");
-        Serial.println(clientId);
+        INFOS("MQTT Client ID = ", clientId);
 
         // Attempt to connect to mqtt broker
         if (mqtt_client.connect(clientId.c_str())) {
-            Serial.println("reconnected to broker");
+            INFO("reconnected to broker");
 
             // Once connected, publish an announcement
             mqtt_client.publish(ERRORTOPIC, "reconnected to broker", false);
@@ -507,24 +487,21 @@ void reconnect() {
             // and then resubscribe
             mqtt_client.subscribe(CMDTOPIC);
         } else {
-            Serial.print("Reconnect failed,  return code = ");
-            Serial.println(mqtt_client.state());
+            INFOD("Reconnect failed,  return code = ", mqtt_client.state());
         }
     } else {
-        Serial.println("Already connected to broker");
+        INFO("Already connected to broker");
     }
 }
 
 
 void SubscriptionCallback(char* topic, byte* payload, unsigned int length) {
 #if DEBUG
-    Serial.print("Message arrived on topic \"");
-    Serial.print(topic);
-    Serial.print("\".  Message = ");
+    INFOS("Message arrived on topic \"", topic);
+    INFO("MQTT message = ");
     for (int i = 0; i < length; i++) {
         Serial.print((char)payload[i]);
     }
-    Serial.println();
 #endif
 
     switch((char)payload[0]) {
@@ -544,7 +521,7 @@ void SubscriptionCallback(char* topic, byte* payload, unsigned int length) {
             TimeRefresh(NULL);
             break;
         default:
-            Serial.print("Message unknown.  No action taken.");
+            WARNING("Message unknown.  No action taken.");
     }
 }
 
@@ -689,7 +666,7 @@ bool SetClockTime(unsigned long time) {
         } else
             displayPM = false;
 
-        Serial.print("Clock time set to = ");
+        INFO("Clock time set to = ");
         printTime(displayHours, displayMinutes, displaySeconds);
         if (displayPM)
             Serial.println("pm");
@@ -699,7 +676,7 @@ bool SetClockTime(unsigned long time) {
         return true;
     }
 
-    Serial.println("New time could not be set. Continuing with old time.");
+    WARNING("New time could not be set. Continuing with old time.");
 
     return false;
 }
@@ -713,7 +690,7 @@ bool TimeRefresh(void *) {
     TimeDriftCheck();
 
     // get current time from ntp server and set the clock
-    Serial.println("Calling NTP server for refresh of time set.");
+    INFO("Calling NTP server for refresh of time set.");
     startUDP();
     epoch = getNTPTime();                // get current time from ntp server (unix epoch time)
     SetClockTime(epoch);                 // set the clock with ntp server time
@@ -735,7 +712,8 @@ void setup() {
     Serial.begin(9600);
     while (!Serial) {}                        // wait for serial port to connect
 
-    Serial.println("\n\rStarting NTP-Clock!");
+    PRINT("\n\r-------------------------------------------------------------------------------");
+    INFO("Starting NTP-Clock!");
 
     // initialize the nodemcu red led so it blinks as the clock ticks
     pinMode(LED, OUTPUT);                     // set LED pin as output
@@ -751,17 +729,18 @@ void setup() {
     // scan for wifi access point and print what you find (useful for trouble shouting wifi)
     scanNetworks();                           // scan for wifi access points
 
-    if (wifiConnect(ssid, pass, WIFITIME)) {  // connect to wifi
+    // connect to wifi, set timers, and connect with mqtt broker
+    if (wifiConnect(WIFISSID, WIFIPASS, WIFITIME)) {
         startUDP();                           // start listening for UDP messages
 
-        Serial.println("Calling NTP server for initial time set.");
+        INFO("Calling NTP server for initial time set.");
         epoch = getNTPTime();                 // get current time from ntp server (unix epoch time)
         SetClockTime(epoch);                  // set the clock with ntp server time
         oldUNIXepoch = epoch;                 // store this value for later use
 
         // you need to stop if you can't get your first ntp time request
         if (epoch == NULL) {
-            Serial.println("Can't go on without NTP time. Press reset to try again.");
+            ERROR("Can't go on without NTP time. Press reset to try again.");
             errorHandler(NONTPSERVER);
         }
 
@@ -783,7 +762,7 @@ void setup() {
 
         stopUDP();                           // stop listening for UDP messages
     } else {
-        Serial.println("Can't go on without WiFi connection. Press reset twice to fix.");
+        ERROR("Can't go on without WiFi connection. Press reset twice to fix.");
         errorHandler(NOWIFI);
     }
 }
@@ -793,7 +772,7 @@ void loop() {
     // to make sure you capture day light savings time changes
     // refresh the time at 2:01:01am with a query to ntp server
     if (displayHours == 2 && displayMinutes == 1 && displaySeconds == 1 && displayPM == false) {
-        Serial.println("\nChecking for day light savings time changes.");
+        INFO("Checking for day light savings time changes.");
         TimeRefresh(NULL);
     }
 
