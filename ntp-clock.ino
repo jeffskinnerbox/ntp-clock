@@ -78,6 +78,11 @@ CREATED BY
 #include "credentials.h"
 #include "WiFiHandler.h"
 
+// version stamp
+#define VERSION "0.5.0"
+#define VER VERSION " - "  __DATE__ " at " __TIME__
+const char version[] = VER;
+
 
 void MQTTPublishDrift(unsigned long);
 bool TimeRefresh(void *);
@@ -123,7 +128,7 @@ char msg[MSGSIZE];                     // buffer to hold mqtt messages
 #define REFRESH           3600000UL     // number of milliseconds between npt time refresh (one hour)
 #define WIFITIME          10000         // attempt to connect with wifi for 10 seconds then abandon
 #define DISPLAY_ADDRESS   0x70          // I2C address of the display
-#define HEARTBEAT         false         // print '.' at each tick-tock of the clock
+#define HEARTBEAT         true          // print '.' at each tick-tock of the clock
 #define ONE_SECOND        1000UL        // milliseconds in one second
 #define TWO_SECOND        2000UL        // milliseconds in two second
 #define ONE_MINUTE        60000UL       // milliseconds in one minute
@@ -151,7 +156,7 @@ Timezone usET(usEDT, usEST);
 
 //-------------------------- Clock Display Parameters --------------------------
 
-// create display object
+// display object constructor
 Adafruit_7segment clockDisplay = Adafruit_7segment();
 
 // create timers with default settings
@@ -183,142 +188,33 @@ byte packetBuffer[NTP_PACKET_SIZE];           // buffer to hold incoming and out
 // WiFiHandler object constructor
 WiFiHandler WH = WiFiHandler();
 
-//------------------------------------------------------------------------------
 
 
-// print an integer in ":00" format (with leading zero).
-// input value assumed to be between 0 and 99.
-void sPrintDigits(int val) {
-    Serial.print(':');
-    if (val < 10) Serial.print('0');
-    Serial.print(val, DEC);
-}
+//--------------------- Error Message Handler for Display ----------------------
 
-
-// print an integer in "00" format (with leading zero).
-// input value assumed to be between 0 and 99.
-void sPrintI00(int val) {
-    if (val < 10) Serial.print('0');
-    Serial.print(val, DEC);
-    return;
-}
-
-
-void printTime(int hour, int minute, int second) {
-    sPrintI00(hour);
-    sPrintDigits(minute);
-    sPrintDigits(second);
-}
-
-
-//Function to print time with time zone
-void printTimeDateLoc(time_t t, char *tz, char *loc) {
-    printTime(hour(t), minute(t), second(t));
-    Serial.print(' ');
-    Serial.print(dayShortStr(weekday(t)));
-    Serial.print(' ');
-    sPrintI00(day(t));
-    Serial.print(' ');
-    Serial.print(monthShortStr(month(t)));
-    Serial.print(' ');
-    Serial.print(year(t));
-    Serial.print(' ');
-    Serial.print(tz);
-    Serial.print(' ');
-    Serial.print(loc);
-    Serial.println();
-}
-
-
-/*//------------------------------------------------------------------------------*/
-
-
-/*// connect to wifi network*/
-/*bool wifiConnect(const char *ssid, const char *password, unsigned long timeout) {*/
-    /*unsigned long tout;*/
-
-    /*// attempt first connect to a WiFi network*/
-    /*INFOS("Attempting connection to WiFi with SSID ", WIFISSID);*/
-    /*WiFi.begin(WIFISSID, WIFIPASS);*/
-
-    /*// make subsequent connection attempts to wifi*/
-    /*tout = timeout + millis();                // milliseconds of time given to making connection attempt*/
-    /*while(WiFi.status() != WL_CONNECTED) {*/
-        /*PRT(".");*/
-        /*if (millis() > tout) {*/
-            /*WARNING("Failed to connect to WiFi ...");*/
-            /*WARNINGD("\tTimed out after (milliseconds): ", timeout);*/
-            /*WARNINGD("WiFi status exit code is ", WiFi.status());*/
-            /*return false;*/
-        /*}*/
-        /*delay(500);*/
-    /*}*/
-    /*PRT(".\n\r");*/
-
-    /*INFOS("Successfully connected to WiFi!  IP address is ", WiFi.localIP());*/
-    /*INFOD("WiFi status exit code is ", WiFi.status());*/
-
-    /*return true;*/
-/*}*/
-
-
-/*// terminate the wifi connect*/
-/*void wifiTerminate() {*/
-
-    /*INFOS("Disconnecting from WiFi with SSID ", WiFi.SSID());*/
-
-    /*WiFi.disconnect();*/
-
-/*}*/
-
-
-/*// scan for nearby networks*/
-/*void scanNetworks() {*/
-
-    /*// scan the network for detectable SSIDs*/
-    /*INFO("Starting Network Scan");*/
-    /*byte numSsid = WiFi.scanNetworks();*/
-
-    /*// print the network number and name for each network found*/
-    /*INFOS("SSID's found: ", numSsid);*/
-    /*for (int thisNet = 0; thisNet < numSsid; thisNet++)*/
-        /*INFOS("\t", WiFi.SSID(thisNet));*/
-
-    /*INFO("Network Scan Completed");*/
-    /*PRINT("-------------------------------------------------------------------------------");*/
-/*}*/
-
-
-/*// start listening for UDP messages on port localPort*/
-/*void startUDP() {*/
-
-    /*if (udp.begin(localPort)) {*/
-        /*INFOD("Starting UDP for NTP connection.  Using local port ", udp.localPort());*/
-    /*} else*/
-        /*ERROR("Failed to start UDP listener.");*/
-
-/*}*/
-
-
-/*// stop listening for UDP messages on port localPort*/
-/*void stopUDP() {*/
-
-    /*INFOD("Stopping UDP on local port ", udp.localPort());*/
-    /*udp.stop();*/
-/*}*/
-
-//------------------------------------------------------------------------------
-
-
-// handle errors by displaying a code and then restart
+// handle errors by displaying a code and then taking action (e.g. restart)
 void errorHandler(int error) {
-    clockDisplay.print(error, HEX);  // error code to be displayed
+
+    clockDisplay.print(error, HEX);  // error code to posted on clock display
     clockDisplay.writeDisplay();     // now push out to the display
 
     delay(ONE_MINUTE);               // delay so the error code can be read
-    Serial.flush();
 
-    ESP.reset();                     // nothing can be done so restart
+    // now process the error
+    switch(error) {
+        case 1:
+            FATAL("Nothing can be done.  Doing an automatic restart.");
+            Serial.flush();                  // make sure serial messages are posted
+            ESP.reset();                     // nothing can be done so restart
+            break;
+        default:
+            // nothing can be done so restart
+            ERRORD("Unknown error code in errorHandler: ", error);
+            FATAL("Nothing can be done.  Doing an automatic restart.");
+            Serial.flush();                  // make sure serial messages are posted
+            ESP.reset();
+    }
+
 }
 
 
@@ -407,6 +303,50 @@ unsigned long getNTPTime() {
 
 
 //------------------------------------------------------------------------------
+
+
+// print an integer in ":00" format (with leading zero).
+// input value assumed to be between 0 and 99.
+void sPrintDigits(int val) {
+    Serial.print(':');
+    if (val < 10) Serial.print('0');
+    Serial.print(val, DEC);
+}
+
+
+// print an integer in "00" format (with leading zero).
+// input value assumed to be between 0 and 99.
+void sPrintI00(int val) {
+    if (val < 10) Serial.print('0');
+    Serial.print(val, DEC);
+    return;
+}
+
+
+void printTime(int hour, int minute, int second) {
+    sPrintI00(hour);
+    sPrintDigits(minute);
+    sPrintDigits(second);
+}
+
+
+//Function to print time with time zone
+void printTimeDateLoc(time_t t, char *tz, char *loc) {
+    printTime(hour(t), minute(t), second(t));
+    Serial.print(' ');
+    Serial.print(dayShortStr(weekday(t)));
+    Serial.print(' ');
+    sPrintI00(day(t));
+    Serial.print(' ');
+    Serial.print(monthShortStr(month(t)));
+    Serial.print(' ');
+    Serial.print(year(t));
+    Serial.print(' ');
+    Serial.print(tz);
+    Serial.print(' ');
+    Serial.print(loc);
+    Serial.println();
+}
 
 
 // check for clock accuracy
@@ -519,7 +459,7 @@ void SubscriptionCallback(char* topic, byte* payload, unsigned int length) {
             TimeRefresh(NULL);
             break;
         default:
-            WARNING("Message unknown.  No action taken.");
+            WARNING("MQTT message unknown.  No action taken.");
     }
 }
 
@@ -533,12 +473,13 @@ bool MQTTPublishTime(void *) {
 
     // format message for sending
     if (displayPM)
-        snprintf(msg, MSGSIZE, "%02d:%02d:%02dpm", displayHours, displayMinutes, displaySeconds);
+        snprintf(msg, MSGSIZE, "%02d:%02d:%02d pm", displayHours, displayMinutes, displaySeconds);
     else
-        snprintf(msg, MSGSIZE, "%02d:%02d:%02dam", displayHours, displayMinutes, displaySeconds);
+        snprintf(msg, MSGSIZE, "%02d:%02d:%02d am", displayHours, displayMinutes, displaySeconds);
 
     // publish message
     mqtt_client.publish(TIMETOPIC, msg, true);
+
 }
 
 
@@ -555,8 +496,8 @@ void MQTTPublishDrift(unsigned long drift) {
 }
 
 
-//------------------------------------------------------------------------------
 
+//------------------------------ Helper Routines -------------------------------
 
 // update nodemcu red led
 bool UpdateLED(void *) {
@@ -627,9 +568,10 @@ bool UpdateTime(void *) {
 
     // print heart beat
     if (HEARTBEAT) {
-        if (displaySeconds == 59)
+        if (displaySeconds == 59) {
+            if (DEBUG) printTime(displayHours, displayMinutes, displaySeconds);
             Serial.print(".\n\r");
-        else
+        } else
             Serial.print(".");
     }
 
@@ -700,7 +642,7 @@ bool TimeRefresh(void *) {
 
 
 
-//------------------------------------------------------------------------------
+//------------------------------- Main Routines --------------------------------
 
 
 void setup() {
@@ -712,6 +654,8 @@ void setup() {
 
     PRINT("\n\r-------------------------------------------------------------------------------");
     INFO("Doing Setup for NTP-Clock!");
+    INFOS("NTP-Clock Version = ", version);
+    INFOS("NTP-Clock MAC Address = ", WiFi.macAddress());
 
     // initialize the nodemcu red led so it blinks as the clock ticks
     pinMode(LED, OUTPUT);                     // set LED pin as output
