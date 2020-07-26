@@ -60,8 +60,8 @@ CREATED BY
 
 // ESP8266 libraries (~/.arduino15/packages/esp8266)
 #include <Wire.h>
-#include <WiFiUdp.h>
-#include <ESP8266WiFi.h>
+//#include <WiFiUdp.h>
+//#include <ESP8266WiFi.h>
 
 // Arduino libraries (~/src/arduino/libraries)
 #include <timer.h>
@@ -76,17 +76,12 @@ CREATED BY
 // NTP-Clock project's include files (~/src/ntp-clock)
 #include "debug.h"
 #include "credentials.h"
+#include "WiFiHandler.h"
 
 
 void MQTTPublishDrift(unsigned long);
 bool TimeRefresh(void *);
 
-
-//------------------------------- WiFi Parameters ------------------------------
-
-// credentials for wifi network
-//const char *ssid = WIFISSID;
-//const char *pass = WIFIPASS;
 
 
 //--------------------------- NodeMCU LED Parameters --------------------------
@@ -179,17 +174,14 @@ int displaySeconds = 0;                 // seconds value written to the display
 
 //------------------------ NTP Timer Server Parameters -------------------------
 
-// A UDP object, used by NTP, to send/receive packets
-WiFiUDP udp;
-unsigned int localPort = 2390;                // local port to listen for UDP packets
-
 // time.nist.gov NTP server address
 IPAddress timeServerIP;                       // ip address of NTP time server
-const char* ntpServerName = "time.nist.gov";  // NIST time server
+const char* NTPSERVERNAME = "time.nist.gov";  // NIST time server
 const int NTP_PACKET_SIZE = 48;               // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE];           // buffer to hold incoming and outgoing packets
 
-
+// WiFiHandler object constructor
+WiFiHandler WH = WiFiHandler();
 
 //------------------------------------------------------------------------------
 
@@ -238,82 +230,82 @@ void printTimeDateLoc(time_t t, char *tz, char *loc) {
 }
 
 
-//------------------------------------------------------------------------------
+/*//------------------------------------------------------------------------------*/
 
 
-// connect to wifi network
-bool wifiConnect(const char *ssid, const char *password, unsigned long timeout) {
-    unsigned long tout;
+/*// connect to wifi network*/
+/*bool wifiConnect(const char *ssid, const char *password, unsigned long timeout) {*/
+    /*unsigned long tout;*/
 
-    // attempt first connect to a WiFi network
-    INFOS("Attempting connection to WiFi with SSID ", WIFISSID);
-    WiFi.begin(WIFISSID, WIFIPASS);
+    /*// attempt first connect to a WiFi network*/
+    /*INFOS("Attempting connection to WiFi with SSID ", WIFISSID);*/
+    /*WiFi.begin(WIFISSID, WIFIPASS);*/
 
-    // make subsequent connection attempts to wifi
-    tout = timeout + millis();                // milliseconds of time given to making connection attempt
-    while(WiFi.status() != WL_CONNECTED) {
-        PRT(".");
-        if (millis() > tout) {
-            WARNING("Failed to connect to WiFi ...");
-            WARNINGD("\tTimed out after (milliseconds): ", timeout);
-            WARNINGD("WiFi status exit code is ", WiFi.status());
-            return false;
-        }
-        delay(500);
-    }
-    PRT(".\n\r");
+    /*// make subsequent connection attempts to wifi*/
+    /*tout = timeout + millis();                // milliseconds of time given to making connection attempt*/
+    /*while(WiFi.status() != WL_CONNECTED) {*/
+        /*PRT(".");*/
+        /*if (millis() > tout) {*/
+            /*WARNING("Failed to connect to WiFi ...");*/
+            /*WARNINGD("\tTimed out after (milliseconds): ", timeout);*/
+            /*WARNINGD("WiFi status exit code is ", WiFi.status());*/
+            /*return false;*/
+        /*}*/
+        /*delay(500);*/
+    /*}*/
+    /*PRT(".\n\r");*/
 
-    INFOS("Successfully connected to WiFi!  IP address is ", WiFi.localIP());
-    INFOD("WiFi status exit code is ", WiFi.status());
+    /*INFOS("Successfully connected to WiFi!  IP address is ", WiFi.localIP());*/
+    /*INFOD("WiFi status exit code is ", WiFi.status());*/
 
-    return true;
-}
-
-
-// terminate the wifi connect
-void wifiTerminate() {
-
-    INFOS("Disconnecting from WiFi with SSID ", WiFi.SSID());
-
-    WiFi.disconnect();
-
-}
+    /*return true;*/
+/*}*/
 
 
-// scan for nearby networks
-void scanNetworks() {
+/*// terminate the wifi connect*/
+/*void wifiTerminate() {*/
 
-    // scan the network for detectable SSIDs
-    INFO("Starting Network Scan");
-    byte numSsid = WiFi.scanNetworks();
+    /*INFOS("Disconnecting from WiFi with SSID ", WiFi.SSID());*/
 
-    // print the network number and name for each network found
-    INFOS("SSID's found: ", numSsid);
-    for (int thisNet = 0; thisNet < numSsid; thisNet++)
-        INFOS("\t", WiFi.SSID(thisNet));
+    /*WiFi.disconnect();*/
 
-    INFO("Network Scan Completed");
-    PRINT("\n\r-------------------------------------------------------------------------------");
-}
+/*}*/
 
 
-// start listening for UDP messages on port localPort
-void startUDP() {
+/*// scan for nearby networks*/
+/*void scanNetworks() {*/
 
-    if (udp.begin(localPort)) {
-        INFOD("Starting UDP for NTP connection.  Using local port ", udp.localPort());
-    } else
-        ERROR("Failed to start UDP listener.");
+    /*// scan the network for detectable SSIDs*/
+    /*INFO("Starting Network Scan");*/
+    /*byte numSsid = WiFi.scanNetworks();*/
 
-}
+    /*// print the network number and name for each network found*/
+    /*INFOS("SSID's found: ", numSsid);*/
+    /*for (int thisNet = 0; thisNet < numSsid; thisNet++)*/
+        /*INFOS("\t", WiFi.SSID(thisNet));*/
+
+    /*INFO("Network Scan Completed");*/
+    /*PRINT("-------------------------------------------------------------------------------");*/
+/*}*/
 
 
-// stop listening for UDP messages on port localPort
-void stopUDP() {
+/*// start listening for UDP messages on port localPort*/
+/*void startUDP() {*/
 
-    INFOD("Stopping UDP on local port ", udp.localPort());
-    udp.stop();
-}
+    /*if (udp.begin(localPort)) {*/
+        /*INFOD("Starting UDP for NTP connection.  Using local port ", udp.localPort());*/
+    /*} else*/
+        /*ERROR("Failed to start UDP listener.");*/
+
+/*}*/
+
+
+/*// stop listening for UDP messages on port localPort*/
+/*void stopUDP() {*/
+
+    /*INFOD("Stopping UDP on local port ", udp.localPort());*/
+    /*udp.stop();*/
+/*}*/
 
 //------------------------------------------------------------------------------
 
@@ -341,7 +333,7 @@ unsigned long sendNTPpacket(IPAddress& address) {
     packetBuffer[0] = 0b11100011;   // LI, Version, Mode
     packetBuffer[1] = 0;            // Stratum, or type of clock
     packetBuffer[2] = 6;            // Polling Interval
-    packetBuffer[3] = 0xEC;         // Peer Clock Precision
+    packetBuffer[3] = 0xEC;         // Peer Clock Precisioa
 
     // 8 bytes of zero for Root Delay & Root Dispersion
     packetBuffer[12] = 49;
@@ -349,11 +341,15 @@ unsigned long sendNTPpacket(IPAddress& address) {
     packetBuffer[14] = 49;
     packetBuffer[15] = 52;
 
+/*    // all NTP fields have been given values, now*/
+    /*// you can send a packet requesting a time stamp*/
+    /*udp.beginPacket(address, 123);      // ntp requests are to port 123*/
+    /*udp.write(packetBuffer, NTP_PACKET_SIZE);*/
+    /*udp.endPacket();*/
+
     // all NTP fields have been given values, now
-    // you can send a packet requesting a time stamp:
-    udp.beginPacket(address, 123);      // ntp requests are to port 123
-    udp.write(packetBuffer, NTP_PACKET_SIZE);
-    udp.endPacket();
+    // you can send a packet requesting a time stamp
+    WH.udpRequest(address, 123, packetBuffer, NTP_PACKET_SIZE);
 }
 
 
@@ -362,25 +358,27 @@ unsigned long sendNTPpacket(IPAddress& address) {
 unsigned long getNTPTime() {
     TimeChangeRule *tcr;
 
-    WiFi.hostByName(ntpServerName, timeServerIP);   //get a random server from the pool
+    WiFi.hostByName(NTPSERVERNAME, timeServerIP);   //get a random server from the pool
 
     sendNTPpacket(timeServerIP);    // send an NTP packet to a time server
     delay(ONE_SECOND);              // wait one second before checking for reply
 
-    int cb = udp.parsePacket();
+    /*int cb = udp.parsePacket();*/
+    int cb = WH.udpCheck();
     if (!cb) {
         WARNING("No packet from NTP server.");
 
         if ((millis() - lastNTPResponse) > ONE_DAY) {
-            FATAL("nMore than 24 hours since last NTP response.  Rebooting.");
+            FATAL("More than 24 hours since last NTP response.  Rebooting.");
             errorHandler(NOREFRESH);
         }
     } else {
-        INFOD("NTP packet received, length= ", cb);
+        INFOD("NTP packet received with length = ", cb);
 
         lastNTPResponse = millis();
 
-        udp.read(packetBuffer, NTP_PACKET_SIZE);      // read the packet into the buffer
+        /*udp.read(packetBuffer, NTP_PACKET_SIZE);      // read the packet into the buffer*/
+        WH.udpRead(packetBuffer, NTP_PACKET_SIZE);      // read the packet into the buffer
 
         //the time stamp starts at byte 40 of the received packet and is four bytes,
         // or two words, long. First, extract the two words
@@ -420,7 +418,7 @@ bool TimeDriftCheck() {
     TimeChangeRule *tcr;
 
     // get the current ntp time of your time server (do first to avoid introducing delay)
-    startUDP();             // use udp to reach ntp time server
+    WH.udpStart();          // use udp to reach ntp time server
     epoch = getNTPTime();   // get the unix epoch time from ntp time server
     utc = epoch;            // convert unix epoch time structure to universal coordinated time
 
@@ -460,13 +458,13 @@ bool TimeDriftCheck() {
         rtn = false;
     }
 
-    stopUDP();                           // stop listening for UDP messages
+    WH.udpStop();                        // stop listening for UDP messages
 
     return rtn;
 }
 
 
-//------------------------------------------------------------------------------
+//-------------------------------- MQTT Routines -------------------------------
 
 
 void reconnect() {
@@ -691,11 +689,11 @@ bool TimeRefresh(void *) {
 
     // get current time from ntp server and set the clock
     INFO("Calling NTP server for refresh of time set.");
-    startUDP();
+    WH.udpStart();
     epoch = getNTPTime();                // get current time from ntp server (unix epoch time)
     SetClockTime(epoch);                 // set the clock with ntp server time
     oldUNIXepoch = epoch;                // store this value for later use
-    stopUDP();                           // stop listening for UDP messages
+    WH.udpStop();                        // stop listening for UDP messages
 
     return true;                         // to repeat the timer, set to 'true'
 }
@@ -713,7 +711,7 @@ void setup() {
     while (!Serial) {}                        // wait for serial port to connect
 
     PRINT("\n\r-------------------------------------------------------------------------------");
-    INFO("Starting NTP-Clock!");
+    INFO("Doing Setup for NTP-Clock!");
 
     // initialize the nodemcu red led so it blinks as the clock ticks
     pinMode(LED, OUTPUT);                     // set LED pin as output
@@ -727,11 +725,11 @@ void setup() {
     clockDisplay.writeDisplay();              // now push the above out to the display
 
     // scan for wifi access point and print what you find (useful for trouble shouting wifi)
-    scanNetworks();                           // scan for wifi access points
+    WH.wifiScan();                            // scan for wifi access points
 
     // connect to wifi, set timers, and connect with mqtt broker
-    if (wifiConnect(WIFISSID, WIFIPASS, WIFITIME)) {
-        startUDP();                           // start listening for UDP messages
+    if (WH.wifiConnect(WIFISSID, WIFIPASS, WIFITIME)) {
+        WH.udpStart();                        // start listening for UDP messages
 
         INFO("Calling NTP server for initial time set.");
         epoch = getNTPTime();                 // get current time from ntp server (unix epoch time)
@@ -760,11 +758,15 @@ void setup() {
         mqtt_client.setServer(mqtt_server, MQTTPORT);  // set your mqtt broker to be used
         mqtt_client.setCallback(SubscriptionCallback); // set the callback for subscribe topic
 
-        stopUDP();                           // stop listening for UDP messages
+        WH.udpStop();                        // stop listening for UDP messages
     } else {
         ERROR("Can't go on without WiFi connection. Press reset twice to fix.");
         errorHandler(NOWIFI);
     }
+
+    INFO("Setup completed");
+    PRINT("-------------------------------------------------------------------------------");
+
 }
 
 
